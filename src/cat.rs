@@ -25,12 +25,17 @@ pub struct CatArgs {
 pub fn run(args: CatArgs) -> Result<()> {
     let mut output = String::new();
     let root_path = Path::new(".");
+    
+    // Load config and merge excludes
+    let config = crate::config::load_config(root_path)?;
+    let mut excludes = args.exclude_args.exclude.clone();
+    excludes.extend(config.exclude);
 
     if let Some(id) = args.id {
         cat_from_snapshot(id, root_path, &mut output)?;
     } else {
         let path = args.path.unwrap_or_else(|| PathBuf::from("."));
-        cat_from_workdir(&path, &args.exclude_args.exclude, &mut output)?;
+        cat_from_workdir(&path, &excludes, &mut output)?;
     }
 
     utils::handle_output(output, &args.output_args, "File content")
