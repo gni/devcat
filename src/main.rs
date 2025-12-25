@@ -23,7 +23,7 @@ pub use error::Result;
 #[derive(Parser, Debug)]
 #[command(
     name = "devcat",
-    version = "0.1.0",
+    version = "0.1.1",
     about = "A self-contained snapshot and context tool for your development loop.",
     long_about = "devcat creates filesystem-based snapshots of your work, allowing you to diff, view, and revert to specific checkpoints in any directory."
 )]
