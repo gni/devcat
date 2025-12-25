@@ -19,9 +19,14 @@ pub struct ModuleArgs {
 
 pub fn run(args: ModuleArgs) -> Result<()> {
     let mut output = String::new();
+    
+    // Load config and merge excludes
+    let config = crate::config::load_config(std::path::Path::new("."))?;
+    let mut excludes = args.exclude_args.exclude.clone();
+    excludes.extend(config.exclude);
 
     let mut glob_builder = GlobSetBuilder::new();
-    for pattern in &args.exclude_args.exclude {
+    for pattern in &excludes {
         let glob = Glob::new(&format!("**/{}", pattern))?;
         glob_builder.add(glob);
     }
