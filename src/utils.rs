@@ -54,12 +54,15 @@ pub fn append_file_content(
     output: &mut String,
 ) -> Result<()> {
     use std::fmt::Write;
-    writeln!(output, "--- START FILE: {} ---", relative_path.display())?;
+    writeln!(output, "{}", relative_path.display())?;
+    let ext = relative_path.extension().map(|e| e.to_string_lossy()).unwrap_or_default();
+    writeln!(output, "```{}", ext)?;
     match fs::read_to_string(full_path) {
         Ok(content) => writeln!(output, "{}", content)?,
         Err(_) => writeln!(output, "[Skipped binary file]")?,
     }
-    writeln!(output, "--- END FILE: {} ---\n", relative_path.display())?;
+    writeln!(output, "```")?;
+    writeln!(output)?;
     Ok(())
 }
 

@@ -1,6 +1,6 @@
 [package]
 name = "devcat"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Lucian BLETAN <neuraluc@gmail.com>"]
 edition = "2024"
 description = "A micro-version control system for your AI development loop."
@@ -15,21 +15,21 @@ categories = ["command-line-utilities", "development-tools"]
 keywords = ["llm", "code", "ollama", "oss", "ai"]
 
 [dependencies]
-chrono = { version = "0.4.41", features = ["serde"] }
-clap = { version = "4.5.42", features = ["derive"] }
-env_logger = "0.11.8"
-globset = "0.4.16"
-humantime = "2.2.0"
-ignore = "0.4.23"
-log = "0.4.27"
+chrono = { version = "0.4.44", features = ["serde"] }
+clap = { version = "4.6.0", features = ["derive"] }
+env_logger = "0.11.10"
+globset = "0.4.18"
+humantime = "2.3.0"
+ignore = "0.4.25"
+log = "0.4.29"
 notify = "8.2.0"
-regex = "1.11.1"
-serde = { version = "1.0.219", features = ["derive"] }
-serde_json = "1.0.142"
+regex = "1.12.3"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
 sha2 = "0.10.9"
 similar = "2.7.0"
-thiserror = "2.0.12"
-toml = "0.9.4"
+thiserror = "2.0.18"
+toml = "0.9.12"
 
 [profile.release]
 strip = true

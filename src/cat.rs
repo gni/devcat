@@ -52,14 +52,18 @@ fn cat_from_snapshot(id: u32, root_path: &Path, output: &mut String) -> Result<(
         let objects_dir = root_path.join(".devcat").join("objects");
         match fs::read_to_string(objects_dir.join(hash)) {
             Ok(content) => {
-                writeln!(output, "--- START FILE: {} ---", path.display())?;
+                writeln!(output, "{}", path.display())?;
+                writeln!(output, "```{}", path.extension().map(|e| e.to_string_lossy()).unwrap_or_default())?;
                 writeln!(output, "{}", content)?;
-                writeln!(output, "--- END FILE: {} ---\n", path.display())?;
+                writeln!(output, "```")?;
+                writeln!(output)?;
             }
             Err(_) => {
-                writeln!(output, "--- START FILE: {} ---", path.display())?;
+                writeln!(output, "{}", path.display())?;
+                writeln!(output, "```")?;
                 writeln!(output, "[Could not read object as text]")?;
-                writeln!(output, "--- END FILE: {} ---\n", path.display())?;
+                writeln!(output, "```")?;
+                writeln!(output)?;
             }
         }
     }
