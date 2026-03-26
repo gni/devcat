@@ -1,6 +1,6 @@
 [package]
 name = "devcat"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["Lucian BLETAN <neuraluc@gmail.com>"]
 edition = "2024"
 description = "A micro-version control system for your AI development loop."

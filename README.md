@@ -133,6 +133,64 @@ Starts a file watcher that automatically creates a new snapshot whenever files a
 devcat watch
 ```
 
+### `devcat module <path>`
+
+Concatenates all files in a specific module directory.
+
+```bash
+# Concatenate all files in the src directory
+devcat module ./src
+```
+
+### `devcat inspect <id>`
+
+Shows a list of all files in a specific snapshot.
+
+```bash
+# See what files were included in snapshot 5
+devcat inspect 5
+```
+
+### `devcat prune --keep <n>`
+
+Deletes old snapshots, keeping only the N most recent ones.
+
+```bash
+# Keep only the last 5 snapshots
+devcat prune --keep 5
+```
+
+**Safety**: Only removes old snapshot data from `.devcat/objects/`. Your project files are never affected.
+
+### `devcat clean [-f]`
+
+Deletes the entire `.devcat` directory and all snapshots.
+
+```bash
+# Delete all snapshots (prompts for confirmation)
+devcat clean
+
+# Delete all snapshots without confirmation
+devcat clean -f
+```
+
+**Safety**: 
+- Only removes `.devcat/` directory (snapshot data)
+- Never deletes your project files
+- Prompts for confirmation unless `-f` flag is used
+
+### `devcat split`
+
+Splits a markdown file with fenced code blocks into individual source files.
+
+```bash
+# Split a markdown file into separate source files
+devcat split --input docs.md --outdir output/
+
+# Dry run to see what would be created
+devcat split --input docs.md --outdir output/ --dry-run
+```
+
 -----
 
 ## Configuration
