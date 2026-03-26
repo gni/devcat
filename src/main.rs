@@ -12,6 +12,7 @@ mod module;
 mod prune;
 mod revert;
 mod save;
+mod split;
 mod trace;
 mod utils;
 mod watch;
@@ -62,6 +63,7 @@ enum Commands {
     Prune(prune::PruneArgs),
     Inspect(inspect::InspectArgs),
     Watch(watch::WatchArgs),
+    Split(split::SplitArgs),
 }
 
 fn main() {
@@ -87,6 +89,7 @@ fn main() {
         Some(Commands::Prune(args)) => prune::run(args),
         Some(Commands::Inspect(args)) => inspect::run(args),
         Some(Commands::Watch(args)) => watch::run(args),
+        Some(Commands::Split(args)) => split::run(args),
         None => cat::run(cli.cat_args),
     };
 

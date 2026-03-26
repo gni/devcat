@@ -26,4 +26,6 @@ pub enum Error {
     ObjectNotFound(String),
     #[error("Failed to format output string: {0}")]
     Format(#[from] std::fmt::Error),
+    #[error("{0}")]
+    Custom(String),
 }
