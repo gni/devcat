@@ -1,16 +1,17 @@
 use crate::error::Result;
 use clap::Args;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::io::Read;
 
 #[derive(Args, Debug)]
 #[command(name = "split")]
 pub struct SplitArgs {
-    /// path to source text file (.txt/.md/any)
+    /// path to source text file (.txt/.md/any). If omitted, reads from stdin.
     #[arg(short, long)]
-    pub input: PathBuf,
+    pub input: Option<PathBuf>,
 
     /// output directory root
-    #[arg(short = 'd', long)]
+    #[arg(short = 'd', long, default_value = ".")]
     pub outdir: PathBuf,
 
     /// parsing mode
@@ -31,23 +32,34 @@ pub struct SplitArgs {
 }
 
 pub fn run(args: SplitArgs) -> Result<()> {
-    let src = &args.input;
-    let outdir = args.outdir.canonicalize().unwrap_or_else(|_| args.outdir.clone());
+    let text = match &args.input {
+        Some(src) => {
+            if !src.exists() || !src.is_file() {
+                return Err(crate::error::Error::Custom(format!("error: input_not_found, path={}", src.display())).into());
+            }
+            std::fs::read_to_string(src)?
+        }
+        None => {
+            let mut buffer = String::new();
+            std::io::stdin().read_to_string(&mut buffer)?;
+            buffer
+        }
+    };
 
-    if !src.exists() || !src.is_file() {
-        return Err(crate::error::Error::Custom(format!("error: input_not_found, path={}", src.display())).into());
-    }
+    execute_split(&text, &args.outdir, &args.mode, args.overwrite, args.dry_run, false)
+}
 
+pub fn execute_split(text: &str, outdir_arg: &Path, mode: &str, overwrite: bool, dry_run: bool, skip_patches: bool) -> Result<()> {
+    let outdir = outdir_arg.canonicalize().unwrap_or_else(|_| outdir_arg.to_path_buf());
     std::fs::create_dir_all(&outdir)?;
 
-    let text = std::fs::read_to_string(src)?;
-    let sections = parse_sections(&text, &args.mode);
+    let normalized_text = text.replace("\r\n", "\n");
+    let sections = parse_sections(&normalized_text, mode);
 
     if sections.is_empty() {
         return Err(crate::error::Error::Custom("error: no_sections_detected, hint=ensure_lines_with_file_paths_precede_fenced_code_blocks".to_string()).into());
     }
 
-    // Check for duplicates
     let mut duplicates: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
     for (rel, _) in &sections {
         *duplicates.entry(rel.clone()).or_insert(0) += 1;
@@ -58,22 +70,26 @@ pub fn run(args: SplitArgs) -> Result<()> {
     }
 
     let mut written = Vec::new();
+
     for (rel, content) in sections {
+        if skip_patches && content.contains("<<<< SEARCH") && content.contains(">>>> REPLACE") {
+            continue;
+        }
+
         let safe_rel = normalize_relpath(&rel);
         let dest = outdir.join(&safe_rel).canonicalize().unwrap_or_else(|_| outdir.join(&safe_rel));
 
-        // Security check: ensure path doesn't escape output directory
         if !dest.starts_with(&outdir) {
             return Err(crate::error::Error::Custom(format!("error: security_violation, message=path_escapes_output_directory: {}", safe_rel)).into());
         }
 
-        if args.dry_run {
+        if dry_run {
             log::info!("plan_write, path={}, bytes={}", dest.display(), content.len());
             written.push(dest.to_string_lossy().to_string());
             continue;
         }
 
-        if dest.exists() && !args.overwrite {
+        if dest.exists() && !overwrite {
             return Err(crate::error::Error::Custom(format!("error: file_exists, message=refusing_to_overwrite: {}", dest.display())).into());
         }
 
@@ -86,7 +102,7 @@ pub fn run(args: SplitArgs) -> Result<()> {
         written.push(dest.to_string_lossy().to_string());
     }
 
-    log::info!("summary, files={}, dry_run={}, outdir={}", written.len(), args.dry_run, outdir.display());
+    log::info!("summary, files={}, dry_run={}, outdir={}", written.len(), dry_run, outdir.display());
 
     Ok(())
 }
@@ -133,7 +149,6 @@ fn parse_sections(text: &str, mode: &str) -> Vec<(String, String)> {
         let line = lines[i];
         if let Some(header) = detect_header(line) {
             let mut j = i + 1;
-            // Skip empty lines
             while j < n && lines[j].trim().is_empty() {
                 j += 1;
             }
@@ -146,7 +161,6 @@ fn parse_sections(text: &str, mode: &str) -> Vec<(String, String)> {
             }
 
             if let Some(fence_char) = fence {
-                // Fenced mode
                 let content_start = j + 1;
                 let mut k = content_start;
                 let mut content_end = None;
@@ -166,7 +180,6 @@ fn parse_sections(text: &str, mode: &str) -> Vec<(String, String)> {
                     continue;
                 }
             } else {
-                // Loose mode
                 let mut k = j;
                 let mut chunk = Vec::new();
 
@@ -201,13 +214,10 @@ fn detect_header(line: &str) -> Option<String> {
         return None;
     }
 
-    // Check if it looks like a file path
     if trimmed == "." || trimmed == ".." {
         return None;
     }
 
-    // Simple heuristic: contains a dot or slash, looks like a path
-    // Also accept lines that look like imports (e.g., "import argparse")
     if trimmed.contains('.') || trimmed.contains('/') || trimmed.starts_with("import ") || trimmed.starts_with("from ") {
         Some(trimmed.to_string())
     } else {

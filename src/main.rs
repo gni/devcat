@@ -1,5 +1,6 @@
 use clap::{Args, Parser};
 use std::path::PathBuf;
+mod apply;
 mod cat;
 mod clean;
 mod config;
@@ -9,6 +10,7 @@ mod history;
 mod inspect;
 mod log_cmd;
 mod module;
+mod patch;
 mod prune;
 mod revert;
 mod save;
@@ -24,7 +26,7 @@ pub use error::Result;
 #[derive(Parser, Debug)]
 #[command(
     name = "devcat",
-    version = "0.1.1",
+    version = "0.1.4",
     about = "A self-contained snapshot and context tool for your development loop.",
     long_about = "devcat creates filesystem-based snapshots of your work, allowing you to diff, view, and revert to specific checkpoints in any directory."
 )]
@@ -64,6 +66,8 @@ enum Commands {
     Inspect(inspect::InspectArgs),
     Watch(watch::WatchArgs),
     Split(split::SplitArgs),
+    Patch(patch::PatchArgs),
+    Apply(apply::ApplyArgs),
 }
 
 fn main() {
@@ -90,6 +94,8 @@ fn main() {
         Some(Commands::Inspect(args)) => inspect::run(args),
         Some(Commands::Watch(args)) => watch::run(args),
         Some(Commands::Split(args)) => split::run(args),
+        Some(Commands::Patch(args)) => patch::run(args),
+        Some(Commands::Apply(args)) => apply::run(args),
         None => cat::run(cli.cat_args),
     };
 

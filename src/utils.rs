@@ -23,6 +23,20 @@ pub fn hash_content(content: &[u8]) -> String {
     format!("{:x}", hasher.finalize())
 }
 
+pub fn hash_file_stream(path: &Path) -> Result<String> {
+    let mut file = fs::File::open(path)?;
+    let mut hasher = Sha256::new();
+    let mut buffer = [0; 32768]; // 32KB buffer for chunked reading
+    loop {
+        let count = file.read(&mut buffer)?;
+        if count == 0 {
+            break;
+        }
+        hasher.update(&buffer[..count]);
+    }
+    Ok(format!("{:x}", hasher.finalize()))
+}
+
 pub fn handle_output(content: String, output_args: &OutputArgs, context_name: &str) -> Result<()> {
     if let Some(path) = &output_args.output {
         debug!("Writing output to file: {}", path.display());
@@ -122,14 +136,15 @@ pub fn get_current_manifest(
                 debug!("Skipping devcat output file: {}", path.display());
                 continue;
             }
-            let content = match fs::read(path) {
-                Ok(content) => content,
+            
+            let hash = match hash_file_stream(path) {
+                Ok(h) => h,
                 Err(e) => {
                     skipped_items.push((path.to_string_lossy().to_string(), e.to_string()));
                     continue;
                 }
             };
-            let hash = hash_content(&content);
+
             if let Ok(relative_path) = path.strip_prefix(root_path) {
                 if !relative_path.as_os_str().is_empty() {
                     manifest.insert(relative_path.to_path_buf(), hash);
@@ -178,8 +193,8 @@ pub fn perform_save(root_path: &Path, message: &str, excludes: &[String]) -> Res
     for (path, hash) in &manifest {
         let object_path = objects_dir.join(hash);
         if !object_path.exists() {
-            let content = fs::read(root_path.join(path))?;
-            fs::write(object_path, content)?;
+            // Replaced memory-heavy fs::read/write with streamed OS-level copy
+            fs::copy(root_path.join(path), object_path)?;
         }
     }
 
