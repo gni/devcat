@@ -31,7 +31,7 @@ pub fn run(args: PatchArgs) -> Result<()> {
 pub fn execute_patch(content: &str, outdir_arg: &Path, dry_run: bool) -> Result<()> {
     let outdir = outdir_arg.canonicalize().unwrap_or_else(|_| outdir_arg.to_path_buf());
     let normalized_content = content.replace("\r\n", "\n");
-    let file_block_re = Regex::new(r"(?:^|\n)([^\n]+)\n```[a-zA-Z0-9_]*\n([\s\S]*?)\n```")?;
+    let file_block_re = Regex::new(r"(?m)(?:^|\n)([^\n]+)\n```[a-zA-Z0-9_]*\n([\s\S]*?)\n```")?;
     let patch_block_re = Regex::new(r"(?s)<<<< SEARCH[ \t]*\n(.*?)\n====[ \t]*\n(.*?)\n>>>> REPLACE[ \t]*")?;
 
     let mut applied_patches = 0;
@@ -42,7 +42,6 @@ pub fn execute_patch(content: &str, outdir_arg: &Path, dry_run: bool) -> Result<
         let code_block = &file_cap[2];
 
         if file_path_str.is_empty() || file_path_str.contains("..") || raw_path.is_absolute() {
-            log::warn!("warning: skipped_invalid_path, path={}", file_path_str);
             continue;
         }
 
@@ -51,7 +50,6 @@ pub fn execute_patch(content: &str, outdir_arg: &Path, dry_run: bool) -> Result<
         }
 
         let file_path = outdir.join(raw_path);
-
         if !file_path.exists() {
             log::warn!("warning: file_not_found_for_patching, path={}", file_path.display());
             continue;
@@ -69,7 +67,7 @@ pub fn execute_patch(content: &str, outdir_arg: &Path, dry_run: bool) -> Result<
                 patched = true;
                 applied_patches += 1;
             } else {
-                log::error!("error: search_block_not_found_check_indentation, path={}", file_path.display());
+                log::error!("error: search_block_not_found, path={}", file_path.display());
             }
         }
 
@@ -84,6 +82,5 @@ pub fn execute_patch(content: &str, outdir_arg: &Path, dry_run: bool) -> Result<
     }
 
     log::info!("summary, patches={}, dry_run={}, outdir={}", applied_patches, dry_run, outdir.display());
-
     Ok(())
 }

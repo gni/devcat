@@ -25,6 +25,13 @@ pub fn run(args: ModuleArgs) -> Result<()> {
     let mut excludes = args.exclude_args.exclude.clone();
     excludes.extend(config.exclude);
 
+    // Automatically exclude the output file itself to prevent self-inclusion
+    if let Some(output_path) = &args.output_args.output {
+        if let Some(file_name) = output_path.file_name() {
+            excludes.push(file_name.to_string_lossy().to_string());
+        }
+    }
+
     let mut glob_builder = GlobSetBuilder::new();
     for pattern in &excludes {
         let glob = Glob::new(&format!("**/{}", pattern))?;

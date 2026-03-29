@@ -23,12 +23,20 @@ pub fn run(args: DiffArgs) -> Result<()> {
     let history = History::load(root_path)?;
     let mut output = String::new();
 
+    let mut excludes = args.exclude_args.exclude.clone();
+    // Automatically exclude the output file itself to prevent self-inclusion
+    if let Some(output_path) = &args.output_args.output {
+        if let Some(file_name) = output_path.file_name() {
+            excludes.push(file_name.to_string_lossy().to_string());
+        }
+    }
+
     let (old_manifest, new_manifest) = match (args.id1, args.id2) {
         (Some(id1), Some(id2)) => (get_manifest(id1, &history)?, get_manifest(id2, &history)?),
-        (Some(id), None) => (get_manifest(id, &history)?, utils::get_current_manifest(root_path, &args.exclude_args.exclude)?),
+        (Some(id), None) => (get_manifest(id, &history)?, utils::get_current_manifest(root_path, &excludes)?),
         (None, None) => {
             let latest = history.get_latest()?;
-            (get_manifest(latest.id, &history)?, utils::get_current_manifest(root_path, &args.exclude_args.exclude)?)
+            (get_manifest(latest.id, &history)?, utils::get_current_manifest(root_path, &excludes)?)
         }
         _ => return Err(crate::error::Error::Format(std::fmt::Error)),
     };
