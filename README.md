@@ -1,31 +1,33 @@
 # DEVCAT
 
-A self-contained snapshot and context tool for your **AI development workflow**.
+A lightweight local snapshot and code context tool for rapid experimentation.
 
------
+---
 
 ## Overview
 
-We've all been there. You're deep in an **LLM project** or **machine learning development**, juggling code, prompts, and a chaotic mess of trial-and-error. Git feels too heavy for these quick, experimental loops. Your terminal history is a graveyard of forgotten commands, and your text editor is a minefield of unsaved changes.
+Git is great, until you're in the middle of a messy experiment and breaking things every five minutes. Nobody wants to pollute their commit history with twenty `"wip"` commits just to save a working state before trying something dumb.
 
-That's why I made **DevCat**. It's a micro-version control system built for how we actually work. No branches, no commits, just instant, clean snapshots of your project. It's a lifesaver when you need to quickly save a good state, revert to a previous version, or grab a full code context to feed back to an **AI model**. DevCat gets out of your way and gives you a fighting chance in the wild world of **AI development**.
+I built **DevCat** for those fast trial-and-error loops. There are no branches and no staging areas just instant local snapshots of your working directory. If an experiment goes sideways, you can diff or revert to a known good state in a second.
 
------
+It also handles a few annoying day-to-day chores: dumping a directory of files into a single text stream (useful for piping into other CLI tools or copying to your clipboard), pulling exact code snippets out of a crash stack trace, and unpacking markdown code blocks into actual files.
+
+---
 
 ## Features
 
-  - **Snapshot & Revert**: Take a snapshot of your project with a simple message. This is essential for quickly saving states during **AI model tuning** or **prompt engineering**. Later, you can jump back to any of those snapshots instantly if things go sideways.
-  - **Context Generation**: Ever need to give an **LLM** a full view of a module or your entire project? DevCat concatenates all your relevant code into a single stream, ready for copy/pasting or piping. This is perfect for providing **AI models** with the context they need.
-  - **Diffing**: Compare snapshots to see what changed, or check the difference between your last saved state and your current work.
-  - **Trace Extraction**: Pipe in a stack trace from your application, and DevCat will fetch the exact code snippets from each file reference, giving you instant debugging context.
-  - **Auto-Watch**: Let DevCat handle the saves for you. It can watch your files and automatically create snapshots when it detects changes.
-  - **Zero-Config**: Just download it and run it. No complex setup or remote servers. It just works.
+* **Snapshots & Rollbacks**: Save the current state of your project with a quick note and revert to it anytime.
+* **File Concatenation**: Dump your project or a specific module into a single stream for easy piping or copy-pasting.
+* **Diffing**: Compare any two snapshots, or check what you've changed since your last save.
+* **Stack Trace Extraction**: Pipe in a crash log and get the exact source code lines referenced in the trace.
+* **Auto-Watch**: Watch your directory and automatically take snapshots whenever files are modified.
+* **Zero Setup**: Everything lives locally in a `.devcat` folder. Drop the binary in your PATH and run it.
 
------
+---
 
 ## Installation
 
-[DevCat](https://github.com/gni/devcat) is a Rust binary.
+[DevCat](https://github.com/gni/devcat) is written in Rust.
 
 ### From Source
 
@@ -35,32 +37,32 @@ cd devcat
 cargo install --path .
 ```
 
-### With cargo
+### With Cargo
+
 ```bash
 cargo install devcat
 ```
 
------
+---
 
 ## Usage
 
-Here’s a quick rundown of the essential commands.
-
 ### `devcat save <message>`
 
-Save a new snapshot of the current project state.
+Take a snapshot of the current directory.
 
 ```bash
-# Save your current progress
-devcat save "refactored the prompt engineering logic"
+# Save current progress
+devcat save "parser works, about to refactor"
 
-# Save a snapshot but exclude the 'data' folder
-devcat save "experimenting with new data loaders" --exclude 'data/'
+# Save a snapshot but ignore the 'data' folder
+devcat save "testing new data loader" --exclude 'data/'
+
 ```
 
 ### `devcat log`
 
-Show a history of all saved snapshots.
+List all saved snapshots.
 
 ```bash
 devcat log
@@ -71,145 +73,135 @@ Output:
 ```text
 ID  TIMESTAMP              MESSAGE
 --- ---------------------- --------------------------------------------------
-1   2025-08-04 17:01:44    Initial commit
+1   2025-08-04 17:01:44    Initial state
 2   2025-08-04 17:05:21    Refactored the core loop
-3   2025-08-04 17:12:03    Implemented new AI logic
+3   2025-08-04 17:12:03    Fixed off-by-one error in parser
+
 ```
 
-### `devcat` (Default Cat)
+### `devcat` (Default Command)
 
-This is the default command. It concatenates all files in the current directory (or a specified path) into a single output. It's perfect for giving context to an LLM.
+Running `devcat` with no arguments concatenates all files in the current directory (or a given path) to `stdout`.
 
 ```bash
-# Send all files in the current directory to your LLM
+# Copy all project files to the clipboard
 devcat | pbcopy
 
-# Concatenate files from a specific module
+# Concatenate files from a specific directory
 devcat ./src/my_module
 ```
 
 ### `devcat --id <id>`
 
-Concatenate all files from a specific snapshot.
+Output the concatenated files from a previous snapshot without touching your current working files.
 
 ```bash
-# Re-run a prompt with the state from snapshot 2
-devcat --id 2 | some_llm_cli "debug this"
+# Pipe the code from snapshot 2 into another tool
+devcat --id 2 | grep "TODO"
 ```
 
-### `devcat diff <id1> [id2]`
+### `devcat diff [id1] [id2]`
 
-Show the differences between two snapshots or between a snapshot and your current working directory.
+Show changes between snapshots, or between the latest snapshot and your working directory.
 
 ```bash
-# Compare the latest snapshot with your current work
+# See what changed since the last snapshot
 devcat diff
 ```
 
 ### `devcat revert <id>`
 
-Revert the working directory to the state of a specific snapshot.
+Restore your working directory to a specific snapshot.
 
 ```bash
-# Revert to a stable state
+# Roll back to snapshot 2
 devcat revert 2
 ```
 
 ### `devcat trace`
 
-Pipes in a stack trace and outputs the referenced code snippets.
+Read a stack trace from `stdin` and print the relevant code blocks from the referenced files.
 
 ```bash
-# Get context for a Python stack trace
+# Grab the code surrounding a Python crash
 python my_script.py 2>&1 | devcat trace
 ```
 
 ### `devcat watch`
 
-Starts a file watcher that automatically creates a new snapshot whenever files are changed.
+Run a file watcher that automatically creates a snapshot whenever you save changes.
 
 ```bash
-# Don't think about it, just code. DevCat will handle the snapshots.
 devcat watch
 ```
 
 ### `devcat module <path>`
 
-Concatenates all files in a specific module directory.
+Concatenate all files inside a specific module directory.
 
 ```bash
-# Concatenate all files in the src directory
 devcat module ./src
 ```
 
 ### `devcat inspect <id>`
 
-Shows a list of all files in a specific snapshot.
+List all files tracked in a specific snapshot.
 
 ```bash
-# See what files were included in snapshot 5
 devcat inspect 5
 ```
 
 ### `devcat prune --keep <n>`
 
-Deletes old snapshots, keeping only the N most recent ones.
+Delete older snapshots, keeping only the `n` most recent ones. This only cleans up `.devcat/objects/` and leaves your working files untouched.
 
 ```bash
 # Keep only the last 5 snapshots
 devcat prune --keep 5
-```
 
-**Safety**: Only removes old snapshot data from `.devcat/objects/`. Your project files are never affected.
+```
 
 ### `devcat clean [-f]`
 
-Deletes the entire `.devcat` directory and all snapshots.
+Wipe the `.devcat` directory and delete all snapshot history. Your actual project files are not affected.
 
 ```bash
-# Delete all snapshots (prompts for confirmation)
+# Delete all snapshots (asks for confirmation)
 devcat clean
 
-# Delete all snapshots without confirmation
+# Force delete without confirmation
 devcat clean -f
 ```
 
-**Safety**: 
-- Only removes `.devcat/` directory (snapshot data)
-- Never deletes your project files
-- Prompts for confirmation unless `-f` flag is used
-
 ### `devcat split`
 
-Splits a markdown file with fenced code blocks into individual source files.
+Extract fenced code blocks from a markdown file and write them out as individual source files.
 
 ```bash
-# Split a markdown file into separate source files
+# Unpack code blocks from docs.md into the output/ folder
 devcat split --input docs.md --outdir output/
 
-# Dry run to see what would be created
+# Preview what files would be created without writing them
 devcat split --input docs.md --outdir output/ --dry-run
 ```
 
------
+---
 
 ## Configuration
 
-For now, DevCat is mostly plug-and-play. If you want to permanently exclude files or directories, you can create a `.devcatrc` file in the root of your project.
-
-### `.devcatrc`
+DevCat works out of the box without configuration. If you have directories you always want to ignore, drop a `.devcatrc` file in your project root:
 
 ```toml
-# Exclude the 'target' and 'node_modules' directories globally
+# Ignore build artifacts and dependencies
 exclude = ["target/", "node_modules/"]
 ```
 
------
+---
 
 ## Contributing
 
-DevCat is an open-source project. If you have an idea, a bug report, or a feature request, feel free to open an issue or submit a pull request.
+Bug reports, feature requests, and pull requests are welcome. Feel free to open an issue if you run into any problems.
 
 ## Authors
 
-[Lucian BLETAN](https://github.com/gni) - initialized project
+[Lucian BLETAN](https://github.com/gni)
